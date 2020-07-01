@@ -31,11 +31,12 @@ import (
 var exportKsCmd = &cobra.Command{
 	Use:     "kustomization [name]",
 	Aliases: []string{"ks"},
-	Short:   "Export kustomization in YAML format",
-	Example: `  # Export all kustomizations
+	Short:   "Export Kustomization resources in YAML format",
+	Long:    "The export kustomization command exports one or all Kustomization resources in YAML format.",
+	Example: `  # Export all Kustomization resources
   export kustomization --all > kustomizations.yaml
 
-  # Export a kustomization
+  # Export a Kustomization
   export kustomization my-app > kustomization.yaml
 `,
 	RunE: exportKsCmdRun,
@@ -66,7 +67,7 @@ func exportKsCmdRun(cmd *cobra.Command, args []string) error {
 		}
 
 		if len(list.Items) == 0 {
-			logFailure("no kustomizations found in %s namespace", namespace)
+			logger.Failuref("no kustomizations found in %s namespace", namespace)
 			return nil
 		}
 

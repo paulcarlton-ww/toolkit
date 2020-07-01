@@ -25,6 +25,8 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/cobra/doc"
 	_ "k8s.io/client-go/plugin/pkg/client/auth"
+
+	tklog "github.com/fluxcd/toolkit/pkg/log"
 )
 
 var VERSION = "0.0.0-dev.0"
@@ -48,16 +50,16 @@ var rootCmd = &cobra.Command{
     --branch=master \
     --interval=3m
 
-  # List git sources and their status
+  # List GitRepository sources and their status
   tk get sources git
 
-  # Trigger a git sync
+  # Trigger a GitRepository source sync
   tk sync source git webapp-latest
 
-  # Export git sources in YAML format
+  # Export GitRepository sources in YAML format
   tk export source git --all > sources.yaml
 
-  # Create a kustomization for deploying a series of microservices
+  # Create a Kustomization for deploying a series of microservices
   tk create kustomization webapp-dev \
     --source=webapp-latest \
     --path="./deploy/webapp/" \
@@ -68,22 +70,22 @@ var rootCmd = &cobra.Command{
     --health-check="Deployment/frontend.webapp" \
     --health-check-timeout=2m
 
-  # Trigger a git sync and apply changes if any
+  # Trigger a git sync of the Kustomization's source and apply changes
   tk sync kustomization webapp-dev --with-source
 
-  # Suspend a kustomization reconciliation
+  # Suspend a Kustomization reconciliation
   tk suspend kustomization webapp-dev
 
-  # Export kustomizations in YAML format
+  # Export Kustomizations in YAML format
   tk export kustomization --all > kustomizations.yaml
 
-  # Resume a kustomization reconciliation
+  # Resume a Kustomization reconciliation
   tk resume kustomization webapp-dev
 
-  # Delete a kustomization
+  # Delete a Kustomization
   tk delete kustomization webapp-dev
 
-  # Delete a git source
+  # Delete a GitRepository source
   tk delete source git webapp-latest
 
   # Uninstall the toolkit and delete CRDs
@@ -98,7 +100,8 @@ var (
 	verbose      bool
 	components   []string
 	utils        Utils
-	pollInterval = 2 * time.Second
+	pollInterval              = 2 * time.Second
+	logger       tklog.Logger = printLogger{}
 )
 
 func init() {
@@ -118,7 +121,7 @@ func main() {
 	generateDocs()
 	kubeconfigFlag()
 	if err := rootCmd.Execute(); err != nil {
-		logFailure("%v", err)
+		logger.Failuref("%v", err)
 		os.Exit(1)
 	}
 }
@@ -130,6 +133,10 @@ func kubeconfigFlag() {
 	} else {
 		rootCmd.PersistentFlags().StringVarP(&kubeconfig, "kubeconfig", "", "",
 			"absolute path to the kubeconfig file")
+	}
+
+	if len(os.Getenv("KUBECONFIG")) > 0 {
+		kubeconfig = os.Getenv("KUBECONFIG")
 	}
 }
 

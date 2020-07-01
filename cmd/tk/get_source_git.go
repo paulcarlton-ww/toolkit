@@ -27,10 +27,9 @@ import (
 
 var getSourceGitCmd = &cobra.Command{
 	Use:   "git",
-	Short: "Get git sources status",
-	Long: `
-The get sources command prints the status of the git resources.`,
-	RunE: getSourceGitCmdRun,
+	Short: "Get GitRepository source statuses",
+	Long:  "The get sources git command prints the status of the GitRepository sources.",
+	RunE:  getSourceGitCmdRun,
 }
 
 func init() {
@@ -53,7 +52,7 @@ func getSourceGitCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if len(list.Items) == 0 {
-		logFailure("no sources found in %s namespace", namespace)
+		logger.Failuref("no sources found in %s namespace", namespace)
 		return nil
 	}
 
@@ -62,16 +61,16 @@ func getSourceGitCmdRun(cmd *cobra.Command, args []string) error {
 		for _, condition := range source.Status.Conditions {
 			if condition.Type == sourcev1.ReadyCondition {
 				if condition.Status != corev1.ConditionFalse {
-					logSuccess("%s last fetched revision: %s", source.GetName(), source.Status.Artifact.Revision)
+					logger.Successf("%s last fetched revision: %s", source.GetName(), source.Status.Artifact.Revision)
 				} else {
-					logFailure("%s %s", source.GetName(), condition.Message)
+					logger.Failuref("%s %s", source.GetName(), condition.Message)
 				}
 				isInitialized = true
 				break
 			}
 		}
 		if !isInitialized {
-			logFailure("%s is not ready", source.GetName())
+			logger.Failuref("%s is not ready", source.GetName())
 		}
 	}
 	return nil

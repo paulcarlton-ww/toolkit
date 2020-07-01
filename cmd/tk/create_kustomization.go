@@ -37,11 +37,9 @@ import (
 var createKsCmd = &cobra.Command{
 	Use:     "kustomization [name]",
 	Aliases: []string{"ks"},
-	Short:   "Create or update a kustomization resource",
-	Long: `
-The kustomization source command generates a kustomization.kustomize.fluxcd.io resource for a given GitRepository source.
-API spec: https://github.com/fluxcd/kustomize-controller/tree/master/docs/spec/v1alpha1`,
-	Example: `  # Create a kustomization from a source at a given path
+	Short:   "Create or update a Kustomization resource",
+	Long:    "The kustomization source create command generates a Kustomize resource for a given GitRepository source.",
+	Example: `  # Create a Kustomization resource from a source at a given path
   create kustomization contour \
     --source=contour \
     --path="./examples/contour/" \
@@ -52,7 +50,7 @@ API spec: https://github.com/fluxcd/kustomize-controller/tree/master/docs/spec/v
     --health-check="DaemonSet/envoy.projectcontour" \
     --health-check-timeout=3m
 
-  # Create a kustomization that depends on the previous one
+  # Create a Kustomization resource that depends on the previous one
   create kustomization webapp \
     --depends-on=contour \
     --source=webapp \
@@ -61,7 +59,7 @@ API spec: https://github.com/fluxcd/kustomize-controller/tree/master/docs/spec/v
     --interval=5m \
     --validate=client
 
-  # Create a kustomization that runs under a service account
+  # Create a Kustomization resource that runs under a service account
   create kustomization webapp \
     --source=webapp \
     --path="./deploy/overlays/staging" \
@@ -88,12 +86,12 @@ var (
 
 func init() {
 	createKsCmd.Flags().StringVar(&ksSource, "source", "", "GitRepository name")
-	createKsCmd.Flags().StringVar(&ksPath, "path", "./", "path to the directory containing the kustomization file")
+	createKsCmd.Flags().StringVar(&ksPath, "path", "./", "path to the directory containing the Kustomization file")
 	createKsCmd.Flags().BoolVar(&ksPrune, "prune", false, "enable garbage collection")
 	createKsCmd.Flags().StringArrayVar(&ksHealthCheck, "health-check", nil, "workload to be included in the health assessment, in the format '<kind>/<name>.<namespace>'")
 	createKsCmd.Flags().DurationVar(&ksHealthTimeout, "health-check-timeout", 2*time.Minute, "timeout of health checking operations")
 	createKsCmd.Flags().StringVar(&ksValidate, "validate", "", "validate the manifests before applying them on the cluster, can be 'client' or 'server'")
-	createKsCmd.Flags().StringArrayVar(&ksDependsOn, "depends-on", nil, "kustomization that must be ready before this kustomization can be applied")
+	createKsCmd.Flags().StringArrayVar(&ksDependsOn, "depends-on", nil, "Kustomization that must be ready before this Kustomization can be applied")
 	createKsCmd.Flags().StringVar(&ksSAName, "sa-name", "", "service account name")
 	createKsCmd.Flags().StringVar(&ksSANamespace, "sa-namespace", "", "service account namespace")
 	createCmd.AddCommand(createKsCmd)
@@ -124,7 +122,7 @@ func createKsCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if !export {
-		logGenerate("generating kustomization")
+		logger.Generatef("generating kustomization")
 	}
 
 	emptyAPIGroup := ""
@@ -194,18 +192,18 @@ func createKsCmdRun(cmd *cobra.Command, args []string) error {
 		return exportKs(kustomization)
 	}
 
-	logAction("applying kustomization")
+	logger.Actionf("applying kustomization")
 	if err := upsertKustomization(ctx, kubeClient, kustomization); err != nil {
 		return err
 	}
 
-	logWaiting("waiting for kustomization sync")
+	logger.Waitingf("waiting for kustomization sync")
 	if err := wait.PollImmediate(pollInterval, timeout,
 		isKustomizationReady(ctx, kubeClient, name, namespace)); err != nil {
 		return err
 	}
 
-	logSuccess("kustomization %s is ready", name)
+	logger.Successf("kustomization %s is ready", name)
 
 	namespacedName := types.NamespacedName{
 		Namespace: namespace,
@@ -217,7 +215,7 @@ func createKsCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if kustomization.Status.LastAppliedRevision != "" {
-		logSuccess("applied revision %s", kustomization.Status.LastAppliedRevision)
+		logger.Successf("applied revision %s", kustomization.Status.LastAppliedRevision)
 	} else {
 		return fmt.Errorf("kustomization sync failed")
 	}
@@ -238,7 +236,7 @@ func upsertKustomization(ctx context.Context, kubeClient client.Client, kustomiz
 			if err := kubeClient.Create(ctx, &kustomization); err != nil {
 				return err
 			} else {
-				logSuccess("kustomization created")
+				logger.Successf("kustomization created")
 				return nil
 			}
 		}
@@ -250,7 +248,7 @@ func upsertKustomization(ctx context.Context, kubeClient client.Client, kustomiz
 		return err
 	}
 
-	logSuccess("kustomization updated")
+	logger.Successf("kustomization updated")
 	return nil
 }
 

@@ -28,9 +28,7 @@ import (
 var uninstallCmd = &cobra.Command{
 	Use:   "uninstall",
 	Short: "Uninstall the toolkit components",
-	Long: `
-The uninstall command removes the namespace, cluster roles,
-cluster role bindings and CRDs.`,
+	Long:  "The uninstall command removes the namespace, cluster roles, cluster role bindings and CRDs from the cluster.",
 	Example: `  # Dry-run uninstall of all components
    uninstall --dry-run --namespace=gitops-system
 
@@ -49,7 +47,7 @@ var (
 
 func init() {
 	uninstallCmd.Flags().BoolVarP(&uninstallKustomizations, "kustomizations", "", false,
-		"removes all kustomizations previously installed")
+		"removes all Kustomizations previously installed")
 	uninstallCmd.Flags().BoolVarP(&uninstallCRDs, "crds", "", false,
 		"removes all CRDs previously installed")
 	uninstallCmd.Flags().BoolVarP(&uninstallDryRun, "dry-run", "", false,
@@ -78,7 +76,7 @@ func uninstallCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if uninstallKustomizations {
-		logAction("uninstalling kustomizations")
+		logger.Actionf("uninstalling kustomizations")
 		command := fmt.Sprintf("kubectl -n %s delete kustomizations --all --timeout=%s %s",
 			namespace, timeout.String(), dryRun)
 		if _, err := utils.execCommand(ctx, ModeOS, command); err != nil {
@@ -87,7 +85,7 @@ func uninstallCmdRun(cmd *cobra.Command, args []string) error {
 
 		// TODO: use the kustomizations snapshots to create a list of objects
 		// that are subject to deletion and wait for all of them to be terminated
-		logWaiting("waiting on GC")
+		logger.Waitingf("waiting on GC")
 		time.Sleep(30 * time.Second)
 	}
 
@@ -96,13 +94,13 @@ func uninstallCmdRun(cmd *cobra.Command, args []string) error {
 		kinds += ",crds"
 	}
 
-	logAction("uninstalling components")
+	logger.Actionf("uninstalling components")
 	command := fmt.Sprintf("kubectl delete %s -l app.kubernetes.io/instance=%s --timeout=%s %s",
 		kinds, namespace, timeout.String(), dryRun)
 	if _, err := utils.execCommand(ctx, ModeOS, command); err != nil {
 		return fmt.Errorf("uninstall failed")
 	}
 
-	logSuccess("uninstall finished")
+	logger.Successf("uninstall finished")
 	return nil
 }

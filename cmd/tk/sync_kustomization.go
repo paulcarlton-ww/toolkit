@@ -30,13 +30,13 @@ import (
 var syncKsCmd = &cobra.Command{
 	Use:     "kustomization [name]",
 	Aliases: []string{"ks"},
-	Short:   "Synchronize kustomization",
+	Short:   "Synchronize a Kustomization resource",
 	Long: `
 The sync kustomization command triggers a reconciliation of a Kustomization resource and waits for it to finish.`,
-	Example: `  # Trigger a kustomization apply outside of the reconciliation interval
+	Example: `  # Trigger a Kustomization apply outside of the reconciliation interval
   sync kustomization podinfo
 
-  # Trigger a git sync of the kustomization source and apply changes
+  # Trigger a sync of the Kustomization's source and apply changes
   sync kustomization podinfo --with-source
 `,
 	RunE: syncKsCmdRun,
@@ -83,7 +83,7 @@ func syncKsCmdRun(cmd *cobra.Command, args []string) error {
 			return err
 		}
 	} else {
-		logAction("annotating kustomization %s in %s namespace", name, namespace)
+		logger.Actionf("annotating kustomization %s in %s namespace", name, namespace)
 		if kustomization.Annotations == nil {
 			kustomization.Annotations = map[string]string{
 				kustomizev1.SyncAtAnnotation: time.Now().String(),
@@ -94,16 +94,16 @@ func syncKsCmdRun(cmd *cobra.Command, args []string) error {
 		if err := kubeClient.Update(ctx, &kustomization); err != nil {
 			return err
 		}
-		logSuccess("kustomization annotated")
+		logger.Successf("kustomization annotated")
 	}
 
-	logWaiting("waiting for kustomization sync")
+	logger.Waitingf("waiting for kustomization sync")
 	if err := wait.PollImmediate(pollInterval, timeout,
 		isKustomizationReady(ctx, kubeClient, name, namespace)); err != nil {
 		return err
 	}
 
-	logSuccess("kustomization sync completed")
+	logger.Successf("kustomization sync completed")
 
 	err = kubeClient.Get(ctx, namespacedName, &kustomization)
 	if err != nil {
@@ -111,7 +111,7 @@ func syncKsCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if kustomization.Status.LastAppliedRevision != "" {
-		logSuccess("applied revision %s", kustomization.Status.LastAppliedRevision)
+		logger.Successf("applied revision %s", kustomization.Status.LastAppliedRevision)
 	} else {
 		return fmt.Errorf("kustomization sync failed")
 	}

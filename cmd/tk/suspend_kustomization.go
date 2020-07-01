@@ -27,7 +27,7 @@ import (
 var suspendKsCmd = &cobra.Command{
 	Use:     "kustomization [name]",
 	Aliases: []string{"ks"},
-	Short:   "Suspend kustomization",
+	Short:   "Suspend reconciliation of Kustomization",
 	Long:    "The suspend command disables the reconciliation of a Kustomization resource.",
 	RunE:    suspendKsCmdRun,
 }
@@ -60,12 +60,12 @@ func suspendKsCmdRun(cmd *cobra.Command, args []string) error {
 		return err
 	}
 
-	logAction("suspending kustomization %s in %s namespace", name, namespace)
+	logger.Actionf("suspending kustomization %s in %s namespace", name, namespace)
 	kustomization.Spec.Suspend = true
 	if err := kubeClient.Update(ctx, &kustomization); err != nil {
 		return err
 	}
-	logSuccess("kustomization suspended")
+	logger.Successf("kustomization suspended")
 
 	return nil
 }

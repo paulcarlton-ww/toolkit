@@ -28,7 +28,8 @@ import (
 
 var deleteSourceGitCmd = &cobra.Command{
 	Use:   "git [name]",
-	Short: "Delete git source",
+	Short: "Delete a GitRepository source",
+	Long:  "The delete source git command deletes the given GitRepository from the cluster.",
 	RunE:  deleteSourceGitCmdRun,
 }
 
@@ -71,12 +72,12 @@ func deleteSourceGitCmdRun(cmd *cobra.Command, args []string) error {
 		}
 	}
 
-	logAction("deleting source %s in %s namespace", name, namespace)
+	logger.Actionf("deleting source %s in %s namespace", name, namespace)
 	err = kubeClient.Delete(ctx, &git)
 	if err != nil {
 		return err
 	}
-	logSuccess("source deleted")
+	logger.Successf("source deleted")
 
 	return nil
 }

@@ -28,9 +28,8 @@ import (
 
 var syncSourceGitCmd = &cobra.Command{
 	Use:   "git [name]",
-	Short: "Synchronize git source",
-	Long: `
-The sync source command triggers a reconciliation of a GitRepository resource and waits for it to finish.`,
+	Short: "Synchronize a GitRepository source",
+	Long:  `The sync source command triggers a reconciliation of a GitRepository resource and waits for it to finish.`,
 	Example: `  # Trigger a git pull for an existing source
   sync source git podinfo
 `,
@@ -60,7 +59,7 @@ func syncSourceGitCmdRun(cmd *cobra.Command, args []string) error {
 		Name:      name,
 	}
 
-	logAction("annotating source %s in %s namespace", name, namespace)
+	logger.Actionf("annotating source %s in %s namespace", name, namespace)
 	var gitRepository sourcev1.GitRepository
 	err = kubeClient.Get(ctx, namespacedName, &gitRepository)
 	if err != nil {
@@ -77,15 +76,15 @@ func syncSourceGitCmdRun(cmd *cobra.Command, args []string) error {
 	if err := kubeClient.Update(ctx, &gitRepository); err != nil {
 		return err
 	}
-	logSuccess("source annotated")
+	logger.Successf("source annotated")
 
-	logWaiting("waiting for git sync")
+	logger.Waitingf("waiting for git sync")
 	if err := wait.PollImmediate(pollInterval, timeout,
 		isGitRepositoryReady(ctx, kubeClient, name, namespace)); err != nil {
 		return err
 	}
 
-	logSuccess("git sync completed")
+	logger.Successf("git sync completed")
 
 	err = kubeClient.Get(ctx, namespacedName, &gitRepository)
 	if err != nil {
@@ -93,7 +92,7 @@ func syncSourceGitCmdRun(cmd *cobra.Command, args []string) error {
 	}
 
 	if gitRepository.Status.Artifact != nil {
-		logSuccess("fetched revision: %s", gitRepository.Status.Artifact.Revision)
+		logger.Successf("fetched revision %s", gitRepository.Status.Artifact.Revision)
 	} else {
 		return fmt.Errorf("git sync failed, artifact not found")
 	}
